@@ -1,0 +1,266 @@
+Title:          Project 2:  Six Degrees of Collaboration
+Author:         Marshall Wilson 
+Time invested:  16 hours total (all parts)
+----------------------------------------------------------------------
+
+Purpose:
+    This program provides a way to store and explore the connections between 
+artists who collaborate with each other. It allows the user to create a graph 
+of artists connected by songs they collaborated on and then to find the paths 
+between artists using three different methods. 
+    The user can provide commands in the command line or through a pre-made 
+command file and can see the results in the command line or in an output file. 
+
+
+Acknowledgements:
+    * Rhys in office hours, who talked over my design and checked off my phase 0
+    * Zachary in office hours, who helped me figure out some phase 1 
+        autograder results.
+    * Megan Gelement and the QA session bunch for inspiration on Include 
+
+Files:
+* SixDegrees.h - Header file for the SixDegrees class. Look here for an overview
+                 of it's member functions and variables. 
+                 
+* SixDegrees.cpp - Implementation of the SixDegrees class member functions. 
+                   Look here for in depth info about the implementation and 
+                   how to use it.
+
+* main.cpp - Driver for creating a SixDegrees instance from a 1-3 provided files
+
+* TestSixDegrees.cpp - Contains unit testing for many of the functions in the 
+                       SixDegrees class. Note: only works if member functions 
+                       are made public. 
+
+* artists.txt - slightly modified (not in ways that matter or that I remember)
+                version of the provided artists list. Used for testing with a 
+                larger graph. 
+
+* testArtists.txt - A small test set of artists. Notable for containing 
+                    disconnected subgraphs and an isolated artist 
+
+* testArtists2.txt - Another small test set of artists. Notable for containing
+                     duplicate artists. 
+
+* testCommands.txt - Super basic command file used in early testing. Tests quit
+
+* testCommands2.txt - More advanced command file. Tests dfs error handling. 
+
+* testOut.txt - output file used in testing SixDegrees. Can be diffed against 
+                demoOut.txt if they're run on the same data/commands.
+                
+* demoOut.txt - output file used to record reference implementation results. Can
+                be diffed against testOut as above. 
+
+
+How to build and run program:
+
+    SixDegrees
+        Make SixDegrees
+        ./SixDegrees dataFile [commandFile] [outputFile]
+
+    Tester (only works if all member functions are public):
+        Make Tester
+        ./Tester
+    
+
+Data structures:
+
+    For populating the graph, I stored the artists from the data file in a 
+vector. This allowed me to easily access each artist in a loop without removing
+them (as in a queue or stack), which was helpful because I needed to loop 
+through them more than once to create each vertex and edge. 
+
+    I also used a vector to store artists from a command stream while preparing
+to run a search. This was important because it allowed the program to easily 
+iterate over all the items in the vector to test that they're in the graph 
+without disturbing the order they were read in. 
+
+    For BFS I used a queue to store the artists that were in line to be checked
+A queue was sufficient for this purpose because I only ever needed to look at 
+the artists in the order they were put in the list. 
+
+
+Algorithms:
+
+    dfs_container: 
+        (assume vertices are cleared at start)
+        check that target artists are in graph
+        call dfs_recursive on the start node 
+        if a path is found, print path 
+        if no path is found, print error 
+        
+    dfs_recursive
+        check if current node is the destination node, 
+            if yes report success 
+        mark the current node as visited 
+        for each neighbor of the current node 
+            if it hasn't been visited before
+                set it's predecessor to the current node 
+                call dfs_recursive on it
+                    if a path is found, report success 
+        if no path is found, report failure. 
+        
+        
+    bfs_container:
+        (assume vertices are cleared at start)
+        check that provided artists are in graph
+        call bfs on the start and end artists 
+        if a path is found, print path 
+        if no path is found, print error 
+        
+    bfs
+        Put the start node in a queue 
+        while that queue isn't empty
+            take out the front node
+            if it hasn't been visited before:
+                mark the current node as visited
+                if the current node is the target, report a success 
+                for each neighboring node:
+                    if it doesn't already have a predecessor:
+                        mark its predecessor as the current node 
+                        add the neighbor to the queue 
+        if the while loop ends, then report a search failure 
+        
+    bfs_not
+        (assume vertices are cleared at start)
+        check that target artists are in graph
+        mark all of the excluded artists as visited 
+        call bfs on the start and end artists 
+        if a path is found, print path 
+        if no path is found, print error 
+        
+    incl_container
+        (assume vertices are cleared at start)
+        check that provided artists are in graph
+        call incl from a to b incl c
+        if that doesn't work, call incl from b to a incl c
+        if neither works, report failure
+        if one of them works, print the path it found 
+    
+    incl 
+        call bfs from a to c 
+        if successful
+            clear the graph metadata
+            mark the nodes on the path from a to c. Don't mark c yet, but save
+                the node that should be its predecessor 
+            find the path from c to b 
+                if successful
+                    set c's predecessor 
+                    report success 
+            
+
+Testing and other details:
+    
+    My unit testing for this program used four different methods. While I was 
+first setting up the class, I used a mix of cerr statements and TestSixDegrees.
+For the overarching/important functions like populate graph, dfs, or print, I
+created test functions in TestSixDegrees.cpp (I also had all of the member 
+functions be public during testing). However, most of these functions had 
+helper functions that were harder/more annoying to test that way, so for 
+functions like createVertices or createEdges, I would include cerr statements 
+and print_graph calls and try them out with a variety of inputs to make sure 
+they worked. 
+
+    Once I had the command loop working, I shifted most of my testing to using
+cin inputs. This was helpful especially for testing dfs because it allowed me 
+to quickly test a variety of edge cases like non-existent artists and paths. 
+
+    Finally, once I had my file I/O set up, I created some command files and 
+tested their outputs both to cout and to output files. When I was putting the 
+final polish on the program, I diff'd my outputs from a command file against 
+the reference implementation. I also went back at this point and cleaned up 
+TestSixDegrees and added some additional testing for constructors and dfs that 
+helped me to find a bug I had missed with non-existent artists (described below)
+    
+    To make my code more modular when writing bfs and not, I rewrote my function
+that checks that artists are in the graph to take a vector of artists. This
+streamlined my checking process and works for dfs, bfs, and not. I also wrote 
+a function to read in artists because I was doing it in all three searches. 
+
+    For testing BFS and Not, I was too annoyed by writing out the testing file,
+so I tested them all from cin or with command files. For each search, I tested
+the following cases: 
+    normal cases (i.e. all artists exist, path exists)
+    some number of artists don't exist 
+    There is no path between the artists 
+    A file providing artists ends before all parameters are provided 
+For Not I also tested: 
+    A path doesn't exist when the excluded artists are excluded 
+    
+I also ran the test file and my command line tests with valgrind to make sure 
+    there were no memory leaks. 
+    
+After getting the phase1 grades back, I fixed a few minor issues the autograder
+    had found. Frustratingly, several of these were minor error message issues
+    like a missing period, but it also showed a case I had missed regarding 
+    how my implementation handles paths from an artist to itself. I went back 
+    and fixed that issue for DFS and made sure my other commands worked too.    
+
+Notable Bugs: 
+
+    Not really a bug, but when I first designed my populateGraph function, I 
+hadn't considered the case of duplicate artists in the data file. I saw someone
+talking about this edge case on Piazza, so I went back to check my code and fix
+any issues, only to find that the code worked perfectly with duplicate 
+artists even if the artist copies in the file have different songs under them
+(it includes the songs from both copies but only makes one vertex). This 
+unintended benefit of my implementation happens because the insert_vertex
+function in CollabGraph doesn't make duplicates, but when I make the graph 
+edges, I use the artistList generated from the data file instead of the list of
+vertices in the graph, so it checks both copies of a duplicate artist for new 
+edges to create. Sorry if this is confusing, but I thought it was cool.
+    
+    I had trouble trying to get the program to output two errors if both artists
+in a dfs call weren't in the graph. I ended up getting a way to work, but I'm 
+going to try and find a cleaner way for part 2. 
+    
+    A frustrating bug I ran into occurred when I was trying to test inputs from
+a command file. The way I set up my testing, I was using the same file stream 
+multiple times without closing the file. I don't fully understand why, but this
+caused issues with every use of the fileStream except the first. 
+
+    A strange bug I don't understand is that when using artists.txt, my 
+implementation would fail to print out the title of the song "Put it in a 
+Love Song" by Alicia Keys and Beyonce. Literally every other collaboration in 
+the list printed properly except for this one. In my print_path function, I 
+changed the way it got song titles from get_collaboration to get_edge and this
+solved it. 
+
+
+Questions: 
+    
+    1. One difference is that BFS finds the shortest path between two artists 
+while DFS finds any path between them. This is because BFS's algorithm traverses
+the graph in order of the distance from the start node, while DFS goes, well, 
+depth first, which in a graph means it can snake through many nodes visiting 
+only one neighbor each before it starts visiting other neighbors of any node. 
+
+    2. Not was a pretty straightforward use of the BFS algorithm. Because BFS 
+already avoids any artists that are marked as visited, it was possible to mark 
+the artists that needed to be avoided as visited before BFS ran, causing the 
+search to completely avoid those nodes. 
+
+    Include was also based on BFS. I found an algorithm that works for finding
+the shortest path from A to B including C. For some reason the shortest path 
+from A to B including C always includes either the shortest path from A to C
+or the shortest path from B to C. If the program can't find BFS(A to C) and 
+BFS(C to B without using the path from A to C) and also can't find (BFS B to C)
+and BFS(C to A without using the path from B to C) then there isn't a possible
+path from A to B including C. 
+
+    3. 
+DFS: Worst case scenario would be O(|V| + |E|) where |V| is the number of 
+vertices in the graph and |E| is the number of edges. This is because the 
+algorithm marks each vertex (so |V| operations in the worst case) and checks 
+the status of (in the worst case) every neighbor of that vertex. There are 2|E|
+total "neighbors" that would need to be checked. 
+
+BFS: Same as DFS, the complexity would be O(|V| + |E|) where |V| is the number 
+of vertices in the graph and |E| is the number of edges. Although it's in a 
+different order than DFS, in the worst case, BFS also marks every vertex and 
+checks every neighbor of every vertex, so the time complexity is the same. 
+    
+Not: Also the same! I implemented Not as a slightly modified BFS, so it has the
+same time complexity.     
+    

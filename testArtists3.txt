@@ -1,0 +1,24 @@
+Artist A
+song A,X
+*
+Artist Y
+song B,Y
+song Y,Z
+*
+Artist X
+song A,X
+song X,C
+song X,B
+*
+Artist B
+song X,B
+song B,Y
+*
+Artist C
+song Z,C
+song X,C
+*
+Artist Z
+song Y,Z
+song Z,C
+*
